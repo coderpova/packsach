@@ -40,3 +40,7 @@ Thumbs.db
 # Temporary candidate image scratch files (keep only active background jpgs)
 public/assets/backgrounds/candidates/
 public/assets/backgrounds/test-*.jpg
+
+.vercel
+
+.vercel

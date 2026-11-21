@@ -26,28 +26,30 @@ interface OFFProductResponse {
 }
 
 async function fetchOffEndpoint(endpoint: string): Promise<any | null> {
-  // Strategy: Try same-origin /api/off (Vite dev proxy & Vercel rewrite) first
-  // to avoid CORS and browser tracking blockers; fallback gracefully to direct API.
+  const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+  const primaryUrl = isLocal ? `/api/off${endpoint}` : `https://world.openfoodfacts.org${endpoint}`;
+  const fallbackUrl = isLocal ? `https://world.openfoodfacts.org${endpoint}` : `/api/off${endpoint}`;
+
   try {
-    const proxyRes = await fetch(`/api/off${endpoint}`, {
+    const res = await fetch(primaryUrl, {
       headers: { 'User-Agent': 'PackSach - FoodTruthApp/1.0' }
     });
-    if (proxyRes.ok) {
-      return await proxyRes.json();
+    if (res.ok) {
+      return await res.json();
     }
-  } catch (proxyErr) {
-    // Graceful fallback to direct endpoint if running outside proxy
+  } catch (err) {
+    // Primary endpoint failed, attempt fallback
   }
 
   try {
-    const directRes = await fetch(`https://world.openfoodfacts.org${endpoint}`, {
+    const fallbackRes = await fetch(fallbackUrl, {
       headers: { 'User-Agent': 'PackSach - FoodTruthApp/1.0' }
     });
-    if (directRes.ok) {
-      return await directRes.json();
+    if (fallbackRes.ok) {
+      return await fallbackRes.json();
     }
-  } catch (directErr) {
-    console.warn('Open Food Facts API request could not be completed:', directErr);
+  } catch (err) {
+    console.warn('Open Food Facts API request could not be completed:', err);
   }
 
   return null;
