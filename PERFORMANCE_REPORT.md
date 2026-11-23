@@ -89,13 +89,13 @@ img.onerror = () => {
 ## 4. Resource Loading Waterfall & Asset Optimization
 
 ### 1. Packaged Food Background Images
-The six thematic packaged food photography backgrounds are loaded responsively with CSS opacity overlays:
-- `hero-packaged-food-bg.png`
-- `explore-snacks-bg.png`
-- `visual-shock-bg.png`
-- `comparison-shelf-bg.png`
-- `smart-swaps-bg.png`
-- `footer-packaged-bg.png`
+The six authentic packaged food photography backgrounds are loaded responsively with CSS opacity overlays:
+- `hero-food-bg.jpg` (Biscuits, chips, noodles & snack packages - 873 kB, HTTP 200)
+- `explore-food-bg.jpg` (Indian packaged FMCG and snacks flatlay - 600 kB, HTTP 200)
+- `analysis-food-bg.jpg` (Packaged nutrition and snack display - 389 kB, HTTP 200)
+- `compare-food-bg.jpg` (Packaged snacks on shelf - 466 kB, HTTP 200)
+- `swaps-food-bg.jpg` (Clean alternative snacks & grains - 403 kB, HTTP 200)
+- `footer-food-bg.jpg` (Atmospheric packaged snacks composition - 232 kB, HTTP 200)
 
 **Optimization Rules Applied:**
 - High-contrast CSS gradient scrims (`rgba(250, 249, 246, 0.92)`) ensure foreground typography meets WCAG AA (>= 4.5:1) regardless of image load timing.
