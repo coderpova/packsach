@@ -9,10 +9,12 @@
     "lint": "oxlint",
     "test": "tsx scripts/runGenuineAutomatedTests.ts",
     "test:unit": "tsx scripts/runMasterAuditTests.ts",
-    "test:all": "tsx scripts/runGenuineAutomatedTests.ts && tsx scripts/runMasterAuditTests.ts",
+    "test:auth": "tsx scripts/runPhase2AuthTests.ts",
+    "test:all": "tsx scripts/runGenuineAutomatedTests.ts && tsx scripts/runMasterAuditTests.ts && tsx scripts/runPhase2AuthTests.ts",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.119.2",
     "@types/canvas-confetti": "^1.9.0",
     "canvas-confetti": "^1.9.4",
     "framer-motion": "^14.14.0",

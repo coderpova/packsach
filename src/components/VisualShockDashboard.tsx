@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import confetti from 'canvas-confetti';
-import { ArrowLeftRight, Sparkles, Edit3, Check, ShoppingBag } from 'lucide-react';
+import { ArrowLeftRight, Sparkles, Edit3, Check, ShoppingBag, AlertTriangle, ShieldCheck } from 'lucide-react';
 import type { Product, SmartSwap } from '../types/product';
+import { useAuth } from '../context/AuthContext';
 import { SugarCubesVisualizer } from './SugarCubesVisualizer';
 import { OilMeterVisualizer } from './OilMeterVisualizer';
 import { SodiumVisualizer } from './SodiumVisualizer';
@@ -26,6 +27,8 @@ export const VisualShockDashboard: React.FC<VisualShockProps> = ({
   isSwapAdded = false,
 }) => {
   const [localAdded, setLocalAdded] = useState(isSwapAdded);
+  const { checkProductAllergies, isAuthenticated, profile, openAuthModal } = useAuth();
+  const allergyCheck = checkProductAllergies(product);
 
   const bestSwap = product.swaps[0];
   const score = product.healthScore.score;
@@ -84,6 +87,68 @@ export const VisualShockDashboard: React.FC<VisualShockProps> = ({
             </p>
           </div>
         </div>
+
+        {/* Personalized Health & Allergen Warning Banner */}
+        {isAuthenticated && (profile?.allergies.length || profile?.dietaryPreferences.length) ? (
+          allergyCheck.hasConflict ? (
+            <div className="bg-[#FFF5F5] border-2 border-[#FED7D7] rounded-3xl p-4 sm:p-5 flex items-start gap-3.5 shadow-xs">
+              <div className="w-10 h-10 rounded-2xl bg-[#FED7D7] flex items-center justify-center text-[#E53E3E] shrink-0 mt-0.5">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-sm font-black text-[#9B2C2C]">
+                    Personalized Safety Warning: Product Conflict Detected!
+                  </h3>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#FED7D7] text-[#9B2C2C]">
+                    Health Alert
+                  </span>
+                </div>
+                <p className="text-xs text-[#C53030] mt-1 leading-relaxed">
+                  Based on your saved health profile, this food product may not be suitable for you:
+                </p>
+                <div className="flex flex-wrap gap-1.5 mt-2.5">
+                  {allergyCheck.conflictingAllergies.map((allergy) => (
+                    <span
+                      key={allergy}
+                      className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#FED7D7] text-[#9B2C2C] border border-[#FEB2B2]"
+                    >
+                      Contains {allergy}
+                    </span>
+                  ))}
+                  {allergyCheck.conflictingDiets.map((diet) => (
+                    <span
+                      key={diet}
+                      className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#FED7D7] text-[#9B2C2C] border border-[#FEB2B2]"
+                    >
+                      Conflicts with {diet}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-[#ECFDF5] border border-[#A7F3D0] rounded-2xl px-4 py-3 flex items-center gap-2.5 text-xs text-[#065F46] font-semibold">
+              <ShieldCheck className="w-4 h-4 text-[#10B981] shrink-0" />
+              <span>
+                Personalized Profile Check: Zero conflicts detected with your {profile?.allergies.length || 0} allergies and {profile?.dietaryPreferences.length || 0} dietary safeguards.
+              </span>
+            </div>
+          )
+        ) : !isAuthenticated ? (
+          <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-2xl px-4 py-2.5 flex items-center justify-between gap-3 text-xs text-[#64748B]">
+            <span className="flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-[#FF5E36]" />
+              <span>Sign in to automatically screen every scanned packet for personal food allergies & diets.</span>
+            </span>
+            <button
+              onClick={() => openAuthModal('login')}
+              className="font-bold text-[#FF5E36] hover:underline shrink-0 cursor-pointer"
+            >
+              Sign In ➔
+            </button>
+          </div>
+        ) : null}
       {/* 1. Theme C Top Ingredients Box with "Edit text" (Matching Reference) */}
       <div className="bg-[#F4F1EA] border border-[#EAE5DA] rounded-3xl p-4 sm:p-5 relative">
         <div className="flex items-center justify-between mb-2">

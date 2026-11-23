@@ -16,6 +16,11 @@ import { Footer } from './components/Footer';
 import { PRODUCTS_DATABASE, searchProducts, findProductById } from './data/productsData';
 import type { Product, SmartSwap } from './types/product';
 import { ArrowLeft, Clock, Trash2, Flame } from 'lucide-react';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthModal } from './components/auth/AuthModal';
+import { GuestSyncBanner } from './components/auth/GuestSyncBanner';
+import { UserProfileView } from './components/profile/UserProfileView';
+import { UserDashboardView } from './components/dashboard/UserDashboardView';
 
 const ScannerModal = React.lazy(() =>
   import('./components/ScannerModal').then((m) => ({ default: m.ScannerModal }))
@@ -24,7 +29,7 @@ const EditableOcrModal = React.lazy(() =>
   import('./components/EditableOcrModal').then((m) => ({ default: m.EditableOcrModal }))
 );
 
-export function App() {
+function AppContent() {
   const [activeTab, setActiveTab] = useState<NavTab>('home');
   const [selectedProduct, setSelectedProduct] = useState<Product>(() => {
     return PRODUCTS_DATABASE[0];
@@ -35,7 +40,16 @@ export function App() {
   const [isScannerOpen, setIsScannerOpen] = useState<boolean>(false);
   const [isEditOcrOpen, setIsEditOcrOpen] = useState<boolean>(false);
 
-  // LocalStorage persistence for Saved Smart Swaps
+  const {
+    isAuthenticated,
+    saveScan,
+    saveUserSwap,
+    userScans,
+    userSavedSwaps,
+    syncGuestHistory
+  } = useAuth();
+
+  // LocalStorage persistence for Saved Smart Swaps (guest & offline backup)
   const [savedSwaps, setSavedSwaps] = useState<SavedSwapItem[]>(() => {
     try {
       const stored = localStorage.getItem('packsach_saved_swaps');
@@ -55,6 +69,17 @@ export function App() {
     }
     return [PRODUCTS_DATABASE[0], PRODUCTS_DATABASE[1]];
   });
+
+  // Automatically offer guest data sync when user logs in
+  const hasSyncedGuestRef = React.useRef(false);
+  useEffect(() => {
+    if (isAuthenticated && !hasSyncedGuestRef.current && (history.length > 0 || savedSwaps.length > 0)) {
+      hasSyncedGuestRef.current = true;
+      syncGuestHistory(history, savedSwaps).catch((err) => {
+        console.warn('Guest data sync notice:', err);
+      });
+    }
+  }, [isAuthenticated, history, savedSwaps, syncGuestHistory]);
 
   // Initialize Lenis smooth inertia scrolling
   useEffect(() => {
@@ -104,6 +129,11 @@ export function App() {
       const filtered = prev.filter((p) => p.id !== fresh.id);
       return [fresh, ...filtered].slice(0, 12);
     });
+
+    // Save to user account if authenticated
+    saveScan(fresh).catch((err) => {
+      console.warn('Could not record user scan:', err);
+    });
   };
 
   // Handler for quick inspect by ID
@@ -117,7 +147,8 @@ export function App() {
   // Handler for opening comparison
   const handleOpenComparison = (product: Product) => {
     setSelectedProduct(product);
-    const other = PRODUCTS_DATABASE.find((p) => p.id !== product.id && p.category === product.category) ||
+    const other =
+      PRODUCTS_DATABASE.find((p) => p.id !== product.id && p.category === product.category) ||
       PRODUCTS_DATABASE.find((p) => p.id !== product.id);
     setCompareSecondaryProduct(other);
     setActiveTab('compare');
@@ -144,6 +175,11 @@ export function App() {
         ...prev,
       ];
     });
+
+    // Save to user account if authenticated
+    saveUserSwap(swap, currentProduct).catch((err) => {
+      console.warn('Could not record user saved swap:', err);
+    });
   };
 
   const handleRemoveSwapItem = (id: string) => {
@@ -160,6 +196,15 @@ export function App() {
 
   const filteredProducts = searchProducts(searchQuery, selectedCategory);
 
+  // Compute total swap count for navbar badge
+  const totalSwapsCount = isAuthenticated
+    ? Math.max(userSavedSwaps.length, savedSwaps.length)
+    : savedSwaps.length;
+
+  const totalHistoryCount = isAuthenticated
+    ? Math.max(userScans.length, history.length)
+    : history.length;
+
   return (
     <div className="min-h-screen flex flex-col bg-[#FAF9F6] text-[#475569]">
       {/* Top Navbar Matching Theme C Reference */}
@@ -167,14 +212,14 @@ export function App() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         onOpenScanner={() => setIsScannerOpen(true)}
-        savedSwapsCount={savedSwaps.length}
-        historyCount={history.length}
+        savedSwapsCount={totalSwapsCount}
+        historyCount={totalHistoryCount}
       />
 
       {/* Main Content Body */}
       <main className="flex-1 w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10 py-6">
         <AnimatePresence mode="wait">
-          {/* TAB 1: THEME C HOME PAGE (MATCHING REFERENCE MOCKUP) */}
+          {/* TAB 1: THEME C HOME PAGE */}
           {activeTab === 'home' && (
             <motion.div
               key="home"
@@ -184,7 +229,7 @@ export function App() {
               transition={{ duration: 0.18 }}
               className="space-y-6 sm:space-y-10"
             >
-              {/* 1. Hero Section with 3D Phone Mockup & Floating Badges */}
+              {/* 1. Hero Section with 3D Mockup & Floating Badges */}
               <HeroSection
                 onSearch={(q) => {
                   setSearchQuery(q);
@@ -219,10 +264,10 @@ export function App() {
               {/* 4. Section: Pricing ("Start free. Go deeper when ready.") */}
               <PricingSection onStartFree={() => setIsScannerOpen(true)} />
 
-              {/* 6. Section: FAQ ("Questions") */}
+              {/* 5. Section: FAQ ("Questions") */}
               <FaqSection />
 
-              {/* 7. Section: Bottom CTA Banner ("The truth is printed. PackSach helps you read it.") */}
+              {/* 6. Section: Bottom CTA Banner */}
               <CtaBanner onOpenScanner={() => setIsScannerOpen(true)} />
             </motion.div>
           )}
@@ -237,6 +282,11 @@ export function App() {
               transition={{ duration: 0.18 }}
               className="space-y-6"
             >
+              <GuestSyncBanner
+                guestScanCount={history.length}
+                guestSwapCount={savedSwaps.length}
+              />
+
               <ProductSearch
                 products={filteredProducts}
                 onSelectProduct={handleSelectProduct}
@@ -249,7 +299,7 @@ export function App() {
             </motion.div>
           )}
 
-          {/* TAB 3: VISUAL ANALYSIS DASHBOARD (MATCHING THEME C RESULT MOBILE & DESKTOP) */}
+          {/* TAB 3: VISUAL ANALYSIS DASHBOARD */}
           {activeTab === 'dashboard' && (
             <motion.div
               key="dashboard"
@@ -357,6 +407,11 @@ export function App() {
               transition={{ duration: 0.18 }}
               className="space-y-6"
             >
+              <GuestSyncBanner
+                guestScanCount={history.length}
+                guestSwapCount={savedSwaps.length}
+              />
+
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#F4F1EA] border border-[#EAE5DA] text-xs font-bold text-[#111827] mb-2">
@@ -367,7 +422,7 @@ export function App() {
                     Recently Inspected Packets
                   </h2>
                   <p className="text-xs sm:text-sm text-[#64748B] mt-1">
-                    Your local browsing history of analyzed packaged foods and OCR scans.
+                    Your browsing history of analyzed packaged foods and OCR scans.
                   </p>
                 </div>
 
@@ -480,11 +535,49 @@ export function App() {
               )}
             </motion.div>
           )}
+
+          {/* TAB 7: USER PERSONAL DASHBOARD */}
+          {activeTab === 'user-dashboard' && (
+            <motion.div
+              key="user-dashboard"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.18 }}
+              className="space-y-6"
+            >
+              <UserDashboardView
+                onSelectProduct={handleSelectProduct}
+                onOpenScanner={() => setIsScannerOpen(true)}
+                onNavigateTab={(tab) => setActiveTab(tab)}
+              />
+            </motion.div>
+          )}
+
+          {/* TAB 8: USER PROFILE & ALLERGEN SETTINGS */}
+          {activeTab === 'profile' && (
+            <motion.div
+              key="profile"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.18 }}
+              className="space-y-6"
+            >
+              <UserProfileView
+                onBackToExplore={() => setActiveTab('explore')}
+                onOpenDashboard={() => setActiveTab('user-dashboard')}
+              />
+            </motion.div>
+          )}
         </AnimatePresence>
       </main>
 
       {/* Footer Matching Reference */}
       <Footer onNavClick={(tab) => setActiveTab(tab)} />
+
+      {/* Global Authentication Modal */}
+      <AuthModal />
 
       {/* Scanner & OCR Modal */}
       {isScannerOpen && (
@@ -496,6 +589,9 @@ export function App() {
               setSelectedProduct(product);
               setActiveTab('dashboard');
               window.scrollTo({ top: 0, behavior: 'smooth' });
+              saveScan(product).catch((err) => {
+                console.warn('Could not record user scan:', err);
+              });
             }}
             onSearchProduct={(query) => {
               setSearchQuery(query);
@@ -522,6 +618,14 @@ export function App() {
         </React.Suspense>
       )}
     </div>
+  );
+}
+
+export function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
 

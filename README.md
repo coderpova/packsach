@@ -37,6 +37,14 @@
 - Verified retail pricing and evidence-basis citations for every swap.
 - Local grocery checklist persistence.
 
+### 6. 👤 Phase 2: User Authentication, Profiles & Personal Safeguards
+- **Authentication Engine:** Email registration with strict password validation (min 8 chars, number/symbol required), secure login, Google OAuth integration, password recovery request flow, and active session management.
+- **Dual-Mode Persistence Architecture:** Production-grade Supabase PostgreSQL integration with Row-Level Security (RLS) policies, paired with an offline-first **Web Crypto SHA-256 salted hash engine** for zero-plaintext local authentication.
+- **Personal Health Profile:** Configurable dietary preferences (Vegetarian, 100% Vegan, Jain, Diabetic-Friendly, Low-Sodium, Gluten-Free, Keto, Halal) and 10 tracked food allergens (Milk & Dairy, Wheat & Gluten, Peanuts, Tree Nuts, Soy, Egg, Fish/Seafood, Sesame, Mustard, Sulfites).
+- **Automated Conflict Detection:** Real-time cross-referencing of every scanned packet's ingredients and nutrition values against user's health profile, displaying high-visibility warning banners on conflicting foods.
+- **Personal Dashboard:** Real-time metrics (Total Scans, Saved Swaps, Average Health Score, Active Safeguards), searchable scan history, one-click re-inspection into Visual Shock Dashboard, individual scan record deletion, and saved swap management.
+- **Seamless Guest-to-Account Migration:** Guests can browse and scan freely; upon signing up or logging in, local scan history and smart swaps automatically migrate into their permanent account.
+
 ---
 
 ## 🛡️ Engineering, Quality & Security Audit
@@ -61,7 +69,7 @@ This repository has completed a comprehensive production-grade architectural and
 
 ---
 
-## 🛠️ Local Development
+## 🛠️ Local Development & Testing
 
 ```bash
 # Clone repository
@@ -74,15 +82,30 @@ npm install
 # Start Vite development server
 npm run dev
 
-# Run automated tests (20 End-to-End Journeys)
-npx tsx scripts/runMasterAuditTests.ts
+# Run all test suites (57 automated tests: genuine binaries, master audit, phase 2 auth)
+npm run test:all
 
-# Run linter (0 errors, 0 warnings)
+# Run individual test suites
+npm test         # Genuine file binaries, magic bytes & Tesseract OCR (19 tests)
+npm run test:unit # Algorithm unit & heuristic classification tests (20 tests)
+npm run test:auth # Phase 2 authentication, crypto, profile & persistence tests (18 tests)
+
+# Run linter
 npm run lint
 
 # Production build
 npm run build
 ```
+
+### Database & Environment Setup (Supabase PostgreSQL)
+1. Copy `.env.example` to `.env`:
+   ```bash
+   cp .env.example .env
+   ```
+2. In your Supabase dashboard SQL editor, execute the schema provided in:
+   [`supabase/schema.sql`](file:///c:/Users/acer/OneDrive/study/project/expora%20project%20hackton/packsach-web/supabase/schema.sql)
+3. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in `.env`.
+> Note: If Supabase credentials are not provided, PackSach automatically activates its built-in Web Crypto SHA-256 salted hash engine, allowing full functionality and all 57 tests to execute offline without external dependencies.
 
 ---
 
