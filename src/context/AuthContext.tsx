@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { User, UserProfile, UserScanRecord, UserSavedSwapRecord } from '../types/auth';
 import type { Product, SmartSwap } from '../types/product';
+import { supabase, isSupabaseConfigured } from '../services/supabase';
 import {
   registerWithEmail,
   loginWithEmail,
@@ -8,8 +9,9 @@ import {
   requestPasswordReset,
   saveProfileUpdates,
   deleteUserAccount,
-  restoreSession,
-  logoutUser
+  logoutUser,
+  getCurrentUserAndProfile,
+  getProfileForSupabaseUser
 } from '../services/authService';
 import {
   fetchUserScans,
@@ -68,19 +70,66 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [userScans, setUserScans] = useState<UserScanRecord[]>([]);
   const [userSavedSwaps, setUserSavedSwaps] = useState<UserSavedSwapRecord[]>([]);
 
-  // Load existing session on mount
+  // Load existing session on mount and subscribe to Supabase auth events
   useEffect(() => {
-    try {
-      const restored = restoreSession();
-      if (restored) {
-        setUser(restored.user);
-        setProfile(restored.profile);
-      }
-    } catch (e) {
-      console.warn('Session restoration error:', e);
-    } finally {
+    let isMounted = true;
+
+    if (!isSupabaseConfigured || !supabase) {
       setIsLoading(false);
+      return;
     }
+
+    // 1. Initial user check via supabase.auth.getUser()
+    (async () => {
+      try {
+        const authData = await getCurrentUserAndProfile();
+        if (authData && isMounted) {
+          setUser(authData.user);
+          setProfile(authData.profile);
+        }
+      } catch (e) {
+        console.warn('Initial session check error:', e);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    })();
+
+    // 2. Real-time auth listener (vital for Google OAuth callback & token refreshes)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (!isMounted) return;
+
+        if (session?.user) {
+          try {
+            const authData = await getProfileForSupabaseUser(session.user);
+            if (isMounted) {
+              setUser(authData.user);
+              setProfile(authData.profile);
+            }
+          } catch (err) {
+            console.warn('Auth sync error on state change:', err);
+          }
+        } else if (event === 'SIGNED_OUT') {
+          if (isMounted) {
+            setUser(null);
+            setProfile(null);
+            setUserScans([]);
+            setUserSavedSwaps([]);
+          }
+        }
+
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    );
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Fetch user data whenever user ID changes
@@ -148,9 +197,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const loginWithGoogle = async () => {
     setIsLoading(true);
     try {
-      const { user: googleUser, profile: googleProfile } = await loginWithGoogleOAuth();
-      setUser(googleUser);
-      setProfile(googleProfile);
+      await loginWithGoogleOAuth();
       closeAuthModal();
     } finally {
       setIsLoading(false);

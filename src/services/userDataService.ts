@@ -19,10 +19,8 @@ export async function fetchUserScans(userId: string): Promise<UserScanRecord[]> 
       .eq('user_id', userId)
       .order('scanned_at', { ascending: false });
 
-    if (error) {
-      console.warn('Supabase fetchUserScans error:', error.message);
-    } else if (data) {
-      return data.map(row => ({
+    if (!error && data && data.length > 0) {
+      const scans = data.map(row => ({
         id: row.id,
         userId: row.user_id,
         productId: row.product_id,
@@ -36,6 +34,10 @@ export async function fetchUserScans(userId: string): Promise<UserScanRecord[]> 
         scannedAt: row.scanned_at,
         productData: row.product_data as Product
       }));
+      try {
+        localStorage.setItem(getUserScanStorageKey(userId), JSON.stringify(scans));
+      } catch {}
+      return scans;
     }
   }
 
@@ -88,7 +90,8 @@ export async function recordUserScan(userId: string, product: Product): Promise<
 
   // Always update user-partitioned local cache
   try {
-    const existing = await fetchUserScans(userId);
+    const raw = localStorage.getItem(getUserScanStorageKey(userId));
+    const existing: UserScanRecord[] = raw ? JSON.parse(raw) : [];
     const filtered = existing.filter(s => s.productId !== product.id);
     const updated = [scanRecord, ...filtered].slice(0, 50);
     localStorage.setItem(getUserScanStorageKey(userId), JSON.stringify(updated));
@@ -109,7 +112,8 @@ export async function deleteUserScan(userId: string, scanId: string): Promise<vo
   }
 
   try {
-    const existing = await fetchUserScans(userId);
+    const raw = localStorage.getItem(getUserScanStorageKey(userId));
+    const existing: UserScanRecord[] = raw ? JSON.parse(raw) : [];
     const updated = existing.filter(s => s.id !== scanId);
     localStorage.setItem(getUserScanStorageKey(userId), JSON.stringify(updated));
   } catch (e) {
@@ -140,10 +144,8 @@ export async function fetchUserSavedSwaps(userId: string): Promise<UserSavedSwap
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
-    if (error) {
-      console.warn('Supabase fetchUserSavedSwaps error:', error.message);
-    } else if (data) {
-      return data.map(row => ({
+    if (!error && data && data.length > 0) {
+      const swaps = data.map(row => ({
         id: row.id,
         userId: row.user_id,
         swapId: row.swap_id,
@@ -151,6 +153,10 @@ export async function fetchUserSavedSwaps(userId: string): Promise<UserSavedSwap
         originalProduct: row.original_product,
         addedAt: row.created_at
       }));
+      try {
+        localStorage.setItem(getUserSwapStorageKey(userId), JSON.stringify(swaps));
+      } catch {}
+      return swaps;
     }
   }
 
@@ -199,7 +205,8 @@ export async function recordUserSavedSwap(
   }
 
   try {
-    const existing = await fetchUserSavedSwaps(userId);
+    const raw = localStorage.getItem(getUserSwapStorageKey(userId));
+    const existing: UserSavedSwapRecord[] = raw ? JSON.parse(raw) : [];
     const exists = existing.some(s => s.swapId === swap.id);
     if (!exists) {
       const updated = [swapRecord, ...existing];
@@ -222,7 +229,8 @@ export async function removeUserSavedSwap(userId: string, idOrSwapId: string): P
   }
 
   try {
-    const existing = await fetchUserSavedSwaps(userId);
+    const raw = localStorage.getItem(getUserSwapStorageKey(userId));
+    const existing: UserSavedSwapRecord[] = raw ? JSON.parse(raw) : [];
     const updated = existing.filter(s => s.id !== idOrSwapId && s.swapId !== idOrSwapId);
     localStorage.setItem(getUserSwapStorageKey(userId), JSON.stringify(updated));
   } catch (e) {
