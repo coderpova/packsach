@@ -19,8 +19,19 @@ function getEnvVar(key: string): string | undefined {
   return undefined;
 }
 
-const supabaseUrl = getEnvVar('VITE_SUPABASE_URL');
-const supabaseAnonKey = getEnvVar('VITE_SUPABASE_ANON_KEY');
+function sanitizeSupabaseUrl(rawUrl: string | undefined): string | undefined {
+  if (!rawUrl) return undefined;
+  let url = rawUrl.trim();
+  // Strip trailing slashes
+  url = url.replace(/\/+$/, '');
+  // If user accidentally copied the /rest/v1 or /v1 path from the Supabase dashboard
+  url = url.replace(/\/rest\/v1\/?$/, '').replace(/\/v1\/?$/, '');
+  return url;
+}
+
+const rawSupabaseUrl = getEnvVar('VITE_SUPABASE_URL');
+const supabaseUrl = sanitizeSupabaseUrl(rawSupabaseUrl);
+const supabaseAnonKey = getEnvVar('VITE_SUPABASE_ANON_KEY')?.trim();
 
 export const isSupabaseConfigured: boolean = Boolean(
   supabaseUrl &&
