@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Edit3, Sparkles, X, AlertCircle, ShieldCheck, HelpCircle } from 'lucide-react';
 import { parseIngredientsText } from '../services/ingredientParser';
@@ -28,8 +28,16 @@ export const EditableOcrModal: React.FC<EditableOcrModalProps> = ({
   const [text, setText] = useState<string>(initialText);
   const [productName, setProductName] = useState<string>('Custom Scanned Packet');
   const [brand, setBrand] = useState<string>('Packaged Food');
-  const [price, setPrice] = useState<number>(25);
+  const [price] = useState<number>(25);
   const [servingGrams, setServingGrams] = useState<number>(initialNutrition?.servingGrams || 30);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onCancel();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onCancel]);
 
   // Optional manual overrides for nutrition values
   const [sugarInput, setSugarInput] = useState<string>(
@@ -87,6 +95,8 @@ export const EditableOcrModal: React.FC<EditableOcrModalProps> = ({
       {
         sugarGrams: sugarNum,
         sodiumMg: sodiumNum,
+        saturatedFatGrams: saturatedFatNum,
+        calories: caloriesNum,
         transFatGrams: 0,
         proteinGrams: proteinNum || 0,
         fiberGrams: fiberNum || 0,
@@ -95,7 +105,7 @@ export const EditableOcrModal: React.FC<EditableOcrModalProps> = ({
       },
       parsed
     );
-  }, [sugarNum, sodiumNum, proteinNum, fiberNum, servingGrams, parsed]);
+  }, [sugarNum, sodiumNum, saturatedFatNum, caloriesNum, proteinNum, fiberNum, servingGrams, parsed]);
 
   const palmIng = parsed.find(i => i.isPalmOil);
   const hasPalm = !!palmIng;
@@ -212,7 +222,12 @@ export const EditableOcrModal: React.FC<EditableOcrModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#111827]/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="editable-ocr-title"
+      className="fixed inset-0 z-50 bg-[#111827]/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
+    >
       <motion.div
         initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -221,6 +236,7 @@ export const EditableOcrModal: React.FC<EditableOcrModalProps> = ({
       >
         <button
           onClick={onCancel}
+          aria-label="Close review modal"
           className="absolute top-5 right-5 p-2 rounded-full text-slate-400 hover:text-[#111827] hover:bg-[#F4F1EA] transition-colors cursor-pointer"
         >
           <X className="w-5 h-5" />

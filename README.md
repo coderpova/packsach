@@ -1,8 +1,11 @@
 # PackSach — Look Beyond the Label 🔍
-> *"Peeche ka label padho. PackSach dikhayega."*
+> *"Peeche ka label padho. PackSach dikhayega."*  
 > *"Healthy" likha ho, toh bhi label padho!*
 
 **PackSach** is a packaged food label transparency and consumer health intelligence platform. It translates fine-print back-of-pack ingredient tables, hidden sugars, palm oil derivatives, and deceptive front-of-package marketing claims into an intuitive **Visual Shock Dashboard**, transparent science-backed health scores (0 to 10), and 1-click **Smart Swaps** in the exact same product category and price range.
+
+🌐 **Live Production Application:** [https://packsach-web.vercel.app](https://packsach-web.vercel.app)  
+📦 **GitHub Repository:** [https://github.com/coderpova/packsach](https://github.com/coderpova/packsach)
 
 ---
 
@@ -10,13 +13,13 @@
 
 ### 1. 🔍 Instant Search & Verified Indian Staples Database
 - Curated database of iconic Indian packaged staples: **Bournvita**, **NutriChoice Digestive Biscuits**, **Frooti**, **Maggi 2-Minute Noodles**, **Kurkure Masala Munch**, **Kellogg's Chocos**, **Nutella**, and **Sting Energy Drink**.
-- Live **Open Food Facts API integration** for global packaged food lookup with automatic nutritional parsing.
+- Live **Open Food Facts API integration** for global packaged food lookup with automatic nutritional parsing and offline fallback resilience.
 
 ### 2. ⚡ Real OCR (Camera & Image Upload) + Editable Extracted Text
-- Device camera feed snapshot or file upload (PNG/JPG/WebP).
-- Client-side neural OCR via **Tesseract.js** with real-time recognition progress tracking.
+- Device camera feed snapshot or file upload (PNG/JPG/WebP) with pre-flight file size and MIME validation (capped at 10MB).
+- Client-side neural OCR via **Tesseract.js** in isolated Web Workers with real-time recognition progress tracking.
 - Interactive **Editable OCR Modal** allowing users to inspect and correct extracted text with instant score recalculation.
-- Transparent image quality and semantic content categorization checks.
+- Transparent image quality checks (Laplacian blur variance, Rec. 601 luminance) and semantic content classification (`NUTRITION_LABEL`, `INGREDIENT_LABEL`, `PACKAGED_FOOD_FRONT`, `UNRELATED_IMAGE`).
 
 ### 3. 💥 Visual Shock Dashboard
 - **Sugar Cubes Visualizer:** 3D physics-inspired sugar cubes (1 cube = 4g sugar) showing exact per-serve load and distinguishing added sugars from intrinsic sugars.
@@ -25,7 +28,7 @@
 - **Additives & Emulsifiers:** Nuanced regulatory status (FSSAI Food Additive Regulations 2011, JECFA ADI, EFSA, US FDA) explaining technological function.
 
 ### 4. ⚖️ Dual-Basis Health Scoring Engine (0 to 10)
-- Combines standardized nutrient density per 100g/ml (**WHO South-East Asia Region Nutrient Profile Model 2023**) with per-serving contribution against reference diet thresholds (**WHO 2015 Guideline on Free Sugars**).
+- Combines standardized nutrient density per 100g/ml (**WHO South-East Asia Region Nutrient Profile Model 2023**) with per-serving contribution against reference diet thresholds (**WHO 2015 Guideline on Free Sugars** and **ICMR-NIN 2024 Dietary Guidelines**).
 - Treats missing values as `UNKNOWN` rather than zero, capping incomplete data at a provisional score of 6.5.
 - Surfaces full scientific references and assumption notes directly in an interactive drawer.
 
@@ -36,13 +39,25 @@
 
 ---
 
+## 🛡️ Engineering, Quality & Security Audit
+
+This repository has completed a comprehensive production-grade architectural and security audit. Detailed documentation is available in the audit reports:
+
+- [AUDIT_REPORT.md](file:///c:/Users/acer/OneDrive/study/project/expora%20project%20hackton/packsach-web/AUDIT_REPORT.md) — Architectural overview, code quality, severity-ranked findings, and resolved technical debt.
+- [SECURITY_AUDIT.md](file:///c:/Users/acer/OneDrive/study/project/expora%20project%20hackton/packsach-web/SECURITY_AUDIT.md) — Threat model, file upload security guardrails, XSS defenses, HTTP security headers, and dependency vulnerability assessment.
+- [TEST_REPORT.md](file:///c:/Users/acer/OneDrive/study/project/expora%20project%20hackton/packsach-web/TEST_REPORT.md) — 20/20 automated end-to-end journey tests, OCR extraction benchmarks, and edge cases.
+- [PERFORMANCE_REPORT.md](file:///c:/Users/acer/OneDrive/study/project/expora%20project%20hackton/packsach-web/PERFORMANCE_REPORT.md) — Rollup bundle splitting (68.9% initial bundle reduction), lazy loading, and Core Web Vitals optimization.
+- [PRODUCT_ROADMAP.md](file:///c:/Users/acer/OneDrive/study/project/expora%20project%20hackton/packsach-web/PRODUCT_ROADMAP.md) — Startup roadmap categorizing 10 strategic consumer features (Build now, Build next, Future, Excluded).
+
+---
+
 ## 🚀 Tech Stack
 
 - **Framework:** React 19 + TypeScript + Vite 8
-- **Styling:** Tailwind CSS 4
+- **Styling:** Tailwind CSS 4 (Theme C: Editorial Cream `#FAF9F6`, Charcoal `#111827`, Coral `#FF5E36`)
 - **Icons & Animation:** Lucide React, Framer Motion, Lenis Smooth Scroll, Canvas Confetti
 - **OCR Engine:** Tesseract.js (client-side WebAssembly)
-- **Deployment:** Vercel
+- **Deployment:** Vercel with HTTP Security Headers
 
 ---
 
@@ -59,8 +74,11 @@ npm install
 # Start Vite development server
 npm run dev
 
-# Run automated tests
+# Run automated tests (20 End-to-End Journeys)
 npx tsx scripts/runMasterAuditTests.ts
+
+# Run linter (0 errors, 0 warnings)
+npm run lint
 
 # Production build
 npm run build

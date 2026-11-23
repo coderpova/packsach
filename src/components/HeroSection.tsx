@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Camera, ArrowRight, ShieldCheck, Flame, Droplet, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Search, Camera, ArrowRight } from 'lucide-react';
 
 interface HeroSectionProps {
   onSearch: (query: string) => void;

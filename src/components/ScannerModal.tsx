@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Camera, Upload, X, AlertCircle, Sparkles, FileText, Search, RefreshCw, CheckCircle2, ShieldAlert } from 'lucide-react';
+import { Camera, Upload, X, AlertCircle, Sparkles, FileText, Search, RefreshCw, ShieldAlert } from 'lucide-react';
 import { EditableOcrModal } from './EditableOcrModal';
-import { validateAndExtractImage, ImageValidationResult, PHOTOGRAPHY_TIPS } from '../services/imageValidator';
+import { validateAndExtractImage, validateImageFileIntegrity, ImageValidationResult, PHOTOGRAPHY_TIPS } from '../services/imageValidator';
 import type { Product } from '../types/product';
 
 interface ScannerModalProps {
@@ -265,9 +265,36 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
     }
   };
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        stopCamera();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      const check = validateImageFileIntegrity(file);
+      if (!check.isValid) {
+        setValidationResult({
+          status: 'UNSUPPORTED',
+          contentCategory: 'UNRELATED_IMAGE',
+          confidence: 0,
+          message: check.error || 'Invalid file format or size.',
+          detectedKeywords: [],
+          classificationMechanism: 'Client Pre-flight Validation',
+          classificationLimitation: 'File integrity failure',
+          hasRealVisionModel: false
+        });
+        return;
+      }
+
       const reader = new FileReader();
       reader.onload = () => {
         const result = reader.result as string;
@@ -307,7 +334,12 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
 
   return (
     <>
-      <div className="fixed inset-0 z-50 bg-[#111827]/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="scanner-modal-title"
+        className="fixed inset-0 z-50 bg-[#111827]/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
+      >
         <motion.div
           initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -319,6 +351,7 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
               stopCamera();
               onClose();
             }}
+            aria-label="Close scanner modal"
             className="absolute top-5 right-5 p-2 rounded-full text-slate-400 hover:text-[#111827] hover:bg-[#F4F1EA] transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
@@ -332,7 +365,7 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
             </span>
           </div>
 
-          <h2 className="text-2xl sm:text-3xl font-black text-[#111827] tracking-tight">
+          <h2 id="scanner-modal-title" className="text-2xl sm:text-3xl font-black text-[#111827] tracking-tight">
             Scan Back-of-Packet Label
           </h2>
           <p className="text-xs sm:text-sm text-[#64748B] mt-1">

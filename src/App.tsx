@@ -12,12 +12,17 @@ import { ProductSearch } from './components/ProductSearch';
 import { VisualShockDashboard } from './components/VisualShockDashboard';
 import { ProductComparison } from './components/ProductComparison';
 import { GrocerySwapList, type SavedSwapItem } from './components/GrocerySwapList';
-import { ScannerModal } from './components/ScannerModal';
-import { EditableOcrModal } from './components/EditableOcrModal';
 import { Footer } from './components/Footer';
 import { PRODUCTS_DATABASE, searchProducts, findProductById } from './data/productsData';
 import type { Product, SmartSwap } from './types/product';
-import { ArrowLeft, Clock, Trash2, Flame, Sparkles } from 'lucide-react';
+import { ArrowLeft, Clock, Trash2, Flame } from 'lucide-react';
+
+const ScannerModal = React.lazy(() =>
+  import('./components/ScannerModal').then((m) => ({ default: m.ScannerModal }))
+);
+const EditableOcrModal = React.lazy(() =>
+  import('./components/EditableOcrModal').then((m) => ({ default: m.EditableOcrModal }))
+);
 
 export function App() {
   const [activeTab, setActiveTab] = useState<NavTab>('home');
@@ -482,33 +487,39 @@ export function App() {
       <Footer onNavClick={(tab) => setActiveTab(tab)} />
 
       {/* Scanner & OCR Modal */}
-      <ScannerModal
-        isOpen={isScannerOpen}
-        onClose={() => setIsScannerOpen(false)}
-        onProductGenerated={(product) => {
-          setSelectedProduct(product);
-          setActiveTab('dashboard');
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }}
-        onSearchProduct={(query) => {
-          setSearchQuery(query);
-          setActiveTab('explore');
-          setIsScannerOpen(false);
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }}
-      />
+      {isScannerOpen && (
+        <React.Suspense fallback={null}>
+          <ScannerModal
+            isOpen={isScannerOpen}
+            onClose={() => setIsScannerOpen(false)}
+            onProductGenerated={(product) => {
+              setSelectedProduct(product);
+              setActiveTab('dashboard');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            onSearchProduct={(query) => {
+              setSearchQuery(query);
+              setActiveTab('explore');
+              setIsScannerOpen(false);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          />
+        </React.Suspense>
+      )}
 
       {/* Editable OCR Text Modal */}
       {isEditOcrOpen && (
-        <EditableOcrModal
-          initialText={selectedProduct.ingredientsText}
-          confidence={92}
-          onConfirm={(updatedProduct) => {
-            setSelectedProduct(updatedProduct);
-            setIsEditOcrOpen(false);
-          }}
-          onCancel={() => setIsEditOcrOpen(false)}
-        />
+        <React.Suspense fallback={null}>
+          <EditableOcrModal
+            initialText={selectedProduct.ingredientsText}
+            confidence={92}
+            onConfirm={(updatedProduct) => {
+              setSelectedProduct(updatedProduct);
+              setIsEditOcrOpen(false);
+            }}
+            onCancel={() => setIsEditOcrOpen(false)}
+          />
+        </React.Suspense>
       )}
     </div>
   );

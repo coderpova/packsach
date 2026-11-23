@@ -157,8 +157,27 @@ export function calculateHealthScore(
   // 3. SATURATED FAT & PALM OIL (QUALITATIVE RANKING ONLY, NEVER INFERRING EXACT PERCENTAGE)
   let fatPenalty = 0;
   if (satFatPer100g !== null) {
-    if (satFatPer100g >= 8.0) fatPenalty += 1.8;
-    else if (satFatPer100g >= 4.0) fatPenalty += 1.0;
+    if (satFatPer100g >= 12.0) {
+      fatPenalty += 2.0;
+      deductions.push({
+        factor: 'High Saturated Fat Density (>= 12g/100g)',
+        penalty: 2.0,
+        weight: 'High',
+        standard: 'WHO SEARO Nutrient Profile Model (2023)',
+        scientificReference: 'WHO SEARO (2023). Saturated fatty acids density benchmark.',
+        reason: `Saturated fat density of ${satFatPer100g.toFixed(1)}g per 100g exceeds SEARO recommended upper density thresholds for solid packaged foods.`
+      });
+    } else if (satFatPer100g >= 5.0) {
+      fatPenalty += 1.2;
+      deductions.push({
+        factor: 'Elevated Saturated Fat Density (>= 5g/100g)',
+        penalty: 1.2,
+        weight: 'Medium',
+        standard: 'WHO SEARO Nutrient Profile Model (2023)',
+        scientificReference: 'WHO SEARO (2023). Saturated fatty acids density benchmark.',
+        reason: `Saturated fat density of ${satFatPer100g.toFixed(1)}g per 100g contributes to elevated saturated fatty acid intake.`
+      });
+    }
   }
 
   const palmOilIngredient = parsedIngredients.find(i => i.isPalmOil);

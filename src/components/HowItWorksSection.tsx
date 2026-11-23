@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { Check, ShoppingBag, ArrowRight } from 'lucide-react';
 
@@ -31,13 +30,22 @@ export const HowItWorksSection: React.FC<HowItWorksSectionProps> = ({
     <section id="how-it-works" className="py-16 sm:py-24 border-t border-[#EAE7E0]">
       <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
-        <div className="text-left mb-10">
-          <span className="text-xs font-black uppercase tracking-wider text-[#FF5E36] block">
-            How it works
-          </span>
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-[#111827] tracking-tight mt-1">
-            Scan. Reveal. Swap.
-          </h2>
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10 text-left">
+          <div>
+            <span className="text-xs font-black uppercase tracking-wider text-[#FF5E36] block">
+              How it works
+            </span>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-[#111827] tracking-tight mt-1">
+              Scan. Reveal. Swap.
+            </h2>
+          </div>
+          <button
+            onClick={onExploreClick}
+            className="btn-secondary h-10 px-4 text-xs font-bold gap-1.5 self-start sm:self-auto cursor-pointer flex items-center"
+          >
+            <span>Explore Verified Staples</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
         </div>
 
         {/* 2-Column Grid Matching Reference */}

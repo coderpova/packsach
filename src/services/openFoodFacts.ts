@@ -37,7 +37,7 @@ async function fetchOffEndpoint(endpoint: string): Promise<any | null> {
     if (res.ok) {
       return await res.json();
     }
-  } catch (err) {
+  } catch {
     // Primary endpoint failed, attempt fallback
   }
 
@@ -104,11 +104,19 @@ export async function fetchFromOpenFoodFacts(queryOrBarcode: string): Promise<Pr
     const healthScore = calculateHealthScore(
       {
         sugarGrams: sugarPerServe,
+        saturatedFatGrams: Math.round(satFat100g * servingRatio * 10) / 10,
         transFatGrams: Math.round(transFat100g * servingRatio * 10) / 10,
         sodiumMg: sodiumPerServe,
         proteinGrams: proteinPerServe,
         fiberGrams: fiberPerServe,
-        servingGrams
+        calories: caloriesPerServe,
+        servingGrams,
+        per100g: {
+          sugarGrams: sugar100g,
+          saturatedFatGrams: satFat100g,
+          sodiumMg: Math.round(sodium100g),
+          calories: calories100g
+        }
       },
       parsedIngredients
     );

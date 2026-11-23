@@ -231,7 +231,7 @@ export function assessImageQuality(canvas: HTMLCanvasElement): ImageQualityAsses
  */
 export function classifyImageContent(
   rawText: string,
-  wordTokens: WordConfidence[]
+  _wordTokens: WordConfidence[]
 ): {
   category: ImageContentCategory;
   detectedBrand?: string;
@@ -251,7 +251,7 @@ export function classifyImageContent(
   // Check structured tabular nutrition markers (e.g., energy + protein/fat + numeric unit)
   const hasTabularNutrition = matchedNutrition.length >= 2 && /\d+\s*(?:g|mg|kcal)/i.test(rawText);
   // Check comma-separated ingredient declaration (e.g. "Ingredients: Wheat Flour, Sugar...")
-  const hasStructuredIngredients = /(?:ingredients?|samagri)\s*[:\-]/i.test(rawText) || (matchedIngredients.length >= 2 && rawText.includes(','));
+  const hasStructuredIngredients = /(?:ingredients?|samagri)\s*[:-]/i.test(rawText) || (matchedIngredients.length >= 2 && rawText.includes(','));
 
   // 1. Unrelated Non-Food Document / Code / General Non-Food
   if (matchedNonFood.length >= 2 && matchedNutrition.length === 0 && matchedIngredients.length === 0 && matchedBrands.length === 0) {
@@ -444,10 +444,10 @@ export function validateImageFileIntegrity(file: File): { isValid: boolean; erro
     };
   }
 
-  if (file.size > 20 * 1024 * 1024) {
+  if (file.size > 10 * 1024 * 1024) {
     return {
       isValid: false,
-      error: 'File size exceeds 20MB limit. Please upload an optimized photo.'
+      error: 'File size exceeds 10MB limit. Please upload an optimized photo.'
     };
   }
 
@@ -487,17 +487,20 @@ export async function validateAndExtractImage(
 
   onProgress?.(10, 'Loading image and initializing visual analyzers...');
 
-  // 2. Load image into memory & canvas
+  // 2. Load image into memory & canvas with proper memory cleanup
+  const objectUrl = typeof imageSource !== 'string' ? URL.createObjectURL(imageSource) : null;
   const imageElement = await new Promise<HTMLImageElement>((resolve, reject) => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
-    img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error('Failed to decode image data'));
-    if (typeof imageSource === 'string') {
-      img.src = imageSource;
-    } else {
-      img.src = URL.createObjectURL(imageSource);
-    }
+    img.onload = () => {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      resolve(img);
+    };
+    img.onerror = () => {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      reject(new Error('Failed to decode image data'));
+    };
+    img.src = objectUrl || (imageSource as string);
   }).catch(() => null);
 
   if (!imageElement || imageElement.naturalWidth < 30 || imageElement.naturalHeight < 30) {

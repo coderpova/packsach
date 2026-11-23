@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import confetti from 'canvas-confetti';
-import { ArrowLeftRight, Sparkles, AlertTriangle, Edit3, Check, ShoppingBag, Droplet, Flame, ShieldAlert } from 'lucide-react';
+import { ArrowLeftRight, Sparkles, Edit3, Check, ShoppingBag } from 'lucide-react';
 import type { Product, SmartSwap } from '../types/product';
 import { SugarCubesVisualizer } from './SugarCubesVisualizer';
 import { OilMeterVisualizer } from './OilMeterVisualizer';
@@ -199,7 +199,11 @@ export const VisualShockDashboard: React.FC<VisualShockProps> = ({
             <span className="text-[10px] font-black tracking-wider uppercase text-white/90 block">
               SWAP, SAME PRICE
             </span>
-            <h3 className="text-xl sm:text-2xl font-black text-white mt-0.5">
+            <h3
+              onClick={() => onSelectSwap?.(bestSwap.id)}
+              className="text-xl sm:text-2xl font-black text-white mt-0.5 cursor-pointer hover:underline"
+              title="Inspect swap product"
+            >
               {bestSwap.name}
             </h3>
             <span className="text-xs sm:text-sm font-semibold text-white/90 block mt-1">

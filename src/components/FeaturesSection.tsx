@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
-import { Search, ArrowRight, Check, Sparkles } from 'lucide-react';
+import { Search } from 'lucide-react';
 
 interface FeaturesSectionProps {
   onSearchProduct: (query: string) => void;
-  onOpenScanner: () => void;
+  onOpenScanner?: () => void;
   onInspectProduct: (productId: string) => void;
 }
 
 export const FeaturesSection: React.FC<FeaturesSectionProps> = ({
   onSearchProduct,
-  onOpenScanner,
+  onOpenScanner: _onOpenScanner,
   onInspectProduct,
 }) => {
   const [demoText, setDemoText] = useState('Sugar, Palm Oil, Maltodextrin ...');

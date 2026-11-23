@@ -76,7 +76,8 @@ const frontWarningExpected = "Food product detected, but its nutrition or ingred
 
 assert(
   frontClassification.category === 'PACKAGED_FOOD_FRONT' &&
-  frontClassification.detectedBrand === 'cadbury',
+  frontClassification.detectedBrand === 'cadbury' &&
+  frontWarningExpected.includes('Please upload a clear image of the back'),
   2,
   'Food packet with only front-side packaging',
   'Image Validation',
@@ -406,6 +407,72 @@ assert(
   'Multi-product real label benchmark testing (5 items)',
   'OCR Parsing Accuracy',
   'Verified 5 real packaged food labels: 100% numeric accuracy on sugar grams, added sugar grams, saturated fat, and sodium milligrams.'
+);
+
+// -------------------------------------------------------------
+// Journey 18: Security File Validation & MIME Whitelist
+// -------------------------------------------------------------
+const oversizedFile = { name: 'heavy.jpg', size: 12 * 1024 * 1024, type: 'image/jpeg' } as any;
+const invalidMimeFile = { name: 'script.svg', size: 1024, type: 'image/svg+xml' } as any;
+const validFile = { name: 'label.webp', size: 2 * 1024 * 1024, type: 'image/webp' } as any;
+
+const checkOversized = validateImageFileIntegrity(oversizedFile);
+const checkInvalidMime = validateImageFileIntegrity(invalidMimeFile);
+const checkValid = validateImageFileIntegrity(validFile);
+
+assert(
+  !checkOversized.isValid &&
+  checkOversized.error?.includes('10MB') &&
+  !checkInvalidMime.isValid &&
+  checkValid.isValid,
+  18,
+  'Security: Upload file size & MIME-type restriction',
+  'Security & Integrity',
+  'Enforces strict 10MB file limit and disallows executable/SVG vectors while permitting JPG, PNG, and WebP.'
+);
+
+// -------------------------------------------------------------
+// Journey 19: Dual-Basis Saturated Fat & Energy Density Impact
+// -------------------------------------------------------------
+const highSatFatLabel = 'Ingredients: Refined Palm Oil, Hydrogenated Fat. Energy: 560 kcal, Total Fat: 34g, Saturated Fat: 18g, Sugar: 2g, Sodium: 50mg';
+const parsedJ19 = parseIngredientsText(highSatFatLabel);
+const nutritionJ19 = extractNutritionFromText(highSatFatLabel);
+const scoreJ19 = calculateHealthScore(
+  {
+    sugarGrams: nutritionJ19.sugarGrams,
+    saturatedFatGrams: nutritionJ19.saturatedFatGrams,
+    sodiumMg: nutritionJ19.sodiumMg,
+    transFatGrams: 0,
+    servingGrams: 30,
+    per100g: {
+      saturatedFatGrams: 60.0
+    }
+  },
+  parsedJ19
+);
+
+assert(
+  scoreJ19.score <= 6.5 &&
+  scoreJ19.deductions.some(d => d.factor.includes('Saturated Fat')),
+  19,
+  'Dual-Basis Saturated Fat Density Penalization',
+  'Nutrient Profiling',
+  `High saturated fat formulation correctly penalized under WHO SEARO NPM density limits (Score: ${scoreJ19.score}/10).`
+);
+
+// -------------------------------------------------------------
+// Journey 20: Qualitative Palm Oil Rank & Zero Undeclared % Invention
+// -------------------------------------------------------------
+const palmOilProduct = PRODUCTS_DATABASE.find(p => p.palmOil.present);
+assert(
+  !!palmOilProduct &&
+  typeof palmOilProduct.palmOil.rank === 'number' &&
+  !palmOilProduct.palmOil.warningText.includes('% exact') &&
+  (palmOilProduct.palmOil.isExactPercentageDeclared !== undefined || palmOilProduct.palmOil.warningText.includes('ingredient')),
+  20,
+  'Qualitative Palm Oil Rank & Zero Undeclared % Invention',
+  'Regulatory Truth',
+  'FSSAI descending ingredient rank is respected qualitatively without inventing fabricated palm oil percentages.'
 );
 
 console.log('\n================================================================');
