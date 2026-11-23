@@ -7,6 +7,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
+    "test": "tsx scripts/runGenuineAutomatedTests.ts",
+    "test:unit": "tsx scripts/runMasterAuditTests.ts",
+    "test:all": "tsx scripts/runGenuineAutomatedTests.ts && tsx scripts/runMasterAuditTests.ts",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -29,6 +32,7 @@
     "oxlint": "^1.90.0",
     "postcss": "^8.5.33",
     "tailwindcss": "^4.3.5",
+    "tsx": "^4.23.15",
     "typescript": "~7.0.2",
     "vite": "^8.3.6"
   }

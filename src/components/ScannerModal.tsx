@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Camera, Upload, X, AlertCircle, Sparkles, FileText, Search, RefreshCw, ShieldAlert } from 'lucide-react';
 import { EditableOcrModal } from './EditableOcrModal';
-import { validateAndExtractImage, validateImageFileIntegrity, ImageValidationResult, PHOTOGRAPHY_TIPS } from '../services/imageValidator';
+import { validateAndExtractImage, validateImageFileIntegrity, validateImageFileSignature, ImageValidationResult, PHOTOGRAPHY_TIPS } from '../services/imageValidator';
 import type { Product } from '../types/product';
 
 interface ScannerModalProps {
@@ -277,7 +277,7 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const check = validateImageFileIntegrity(file);
@@ -290,6 +290,22 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
           detectedKeywords: [],
           classificationMechanism: 'Client Pre-flight Validation',
           classificationLimitation: 'File integrity failure',
+          hasRealVisionModel: false
+        });
+        return;
+      }
+
+      // Check binary magic bytes signature to guard against spoofed files
+      const sigCheck = await validateImageFileSignature(file);
+      if (!sigCheck.isValid) {
+        setValidationResult({
+          status: 'UNSUPPORTED',
+          contentCategory: 'UNRELATED_IMAGE',
+          confidence: 0,
+          message: sigCheck.error || 'File signature mismatch. The file content does not match a valid JPG, PNG, or WebP image.',
+          detectedKeywords: [],
+          classificationMechanism: 'Binary Magic Bytes Validation',
+          classificationLimitation: 'Signature mismatch failure',
           hasRealVisionModel: false
         });
         return;
@@ -622,7 +638,7 @@ export const ScannerModal: React.FC<ScannerModalProps> = ({
                   type="file"
                   ref={fileInputRef}
                   onChange={handleFileUpload}
-                  accept="image/jpeg,image/png,image/webp,image/bmp,image/avif"
+                  accept="image/jpeg,image/png,image/webp"
                   className="hidden"
                 />
                 <div className="w-12 h-12 rounded-2xl bg-white border border-[#EAE5DA] flex items-center justify-center mb-3 text-[#FF5E36] shadow-xs">

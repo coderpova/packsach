@@ -44,3 +44,5 @@ public/assets/backgrounds/test-*.jpg
 .vercel
 
 .vercel
+
+*.traineddata

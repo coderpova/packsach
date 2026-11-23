@@ -426,16 +426,11 @@ export function extractNutritionFromText(rawText: string): ExtractedNutritionVal
 }
 
 /**
- * Validates image file binary integrity
+ * Validates image file binary integrity (MIME, extension, size)
  */
 export function validateImageFileIntegrity(file: File): { isValid: boolean; error?: string } {
-  const validMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/bmp', 'image/avif'];
-  if (!validMimes.includes(file.type.toLowerCase())) {
-    return {
-      isValid: false,
-      error: 'Unsupported file format. Please upload a JPG, PNG or WebP image.'
-    };
-  }
+  const validMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+  const normalizedType = file.type ? file.type.toLowerCase() : '';
 
   if (file.size === 0) {
     return {
@@ -451,7 +446,87 @@ export function validateImageFileIntegrity(file: File): { isValid: boolean; erro
     };
   }
 
+  // Check file extension if name is available to block spoofed/dangerous extensions
+  if (file.name) {
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    const dangerousExtensions = ['svg', 'html', 'htm', 'exe', 'bat', 'cmd', 'sh', 'php', 'js', 'ts', 'pdf'];
+    if (ext && dangerousExtensions.includes(ext)) {
+      return {
+        isValid: false,
+        error: 'Unsupported file format. Please upload a JPG, PNG or WebP image.'
+      };
+    }
+    const validExtensions = ['jpg', 'jpeg', 'png', 'webp'];
+    if (ext && !validExtensions.includes(ext)) {
+      return {
+        isValid: false,
+        error: 'Unsupported file format. Please upload a JPG, PNG or WebP image.'
+      };
+    }
+  }
+
+  // Check browser-reported MIME type if present
+  if (normalizedType && !validMimes.includes(normalizedType)) {
+    return {
+      isValid: false,
+      error: 'Unsupported file format. Please upload a JPG, PNG or WebP image.'
+    };
+  }
+
   return { isValid: true };
+}
+
+/**
+ * Validates actual binary magic bytes (file signature).
+ * Protects against MIME-type spoofing (e.g. SVG or executable renamed to .jpg).
+ */
+export function verifyImageMagicBytes(headerBytes: Uint8Array): { isValid: boolean; format?: 'jpeg' | 'png' | 'webp'; error?: string } {
+  if (headerBytes.length < 12) {
+    return {
+      isValid: false,
+      error: 'File is too small to contain a valid image header.'
+    };
+  }
+
+  // JPEG magic bytes: FF D8 FF
+  if (headerBytes[0] === 0xFF && headerBytes[1] === 0xD8 && headerBytes[2] === 0xFF) {
+    return { isValid: true, format: 'jpeg' };
+  }
+
+  // PNG magic bytes: 89 50 4E 47 0D 0A 1A 0A
+  if (headerBytes[0] === 0x89 && headerBytes[1] === 0x50 && headerBytes[2] === 0x4E && headerBytes[3] === 0x47) {
+    return { isValid: true, format: 'png' };
+  }
+
+  // WebP: RIFF (bytes 0-3) + WEBP (bytes 8-11)
+  if (
+    headerBytes[0] === 0x52 && headerBytes[1] === 0x49 && headerBytes[2] === 0x46 && headerBytes[3] === 0x46 &&
+    headerBytes[8] === 0x57 && headerBytes[9] === 0x45 && headerBytes[10] === 0x42 && headerBytes[11] === 0x50
+  ) {
+    return { isValid: true, format: 'webp' };
+  }
+
+  return {
+    isValid: false,
+    error: 'File signature mismatch. The file content does not match a valid JPG, PNG, or WebP image header.'
+  };
+}
+
+/**
+ * Asynchronously verifies the file signature of a File or Blob by reading its first 16 bytes.
+ */
+export async function validateImageFileSignature(file: File | Blob): Promise<{ isValid: boolean; format?: 'jpeg' | 'png' | 'webp'; error?: string }> {
+  try {
+    const headerSlice = file.slice(0, 16);
+    const arrayBuffer = await headerSlice.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
+    return verifyImageMagicBytes(bytes);
+  } catch {
+    return {
+      isValid: false,
+      error: 'Failed to read image binary header. The file may be unreadable or corrupted.'
+    };
+  }
 }
 
 /**
@@ -477,6 +552,20 @@ export async function validateAndExtractImage(
         contentCategory: 'UNRELATED_IMAGE',
         confidence: 0,
         message: check.error || 'Unsupported file format. Please upload a JPG, PNG or WebP image.',
+        detectedKeywords: [],
+        classificationMechanism,
+        classificationLimitation,
+        hasRealVisionModel: false
+      };
+    }
+
+    const sigCheck = await validateImageFileSignature(imageSource);
+    if (!sigCheck.isValid) {
+      return {
+        status: 'UNSUPPORTED',
+        contentCategory: 'UNRELATED_IMAGE',
+        confidence: 0,
+        message: sigCheck.error || 'File signature mismatch. The file content does not match a valid JPG, PNG, or WebP image header.',
         detectedKeywords: [],
         classificationMechanism,
         classificationLimitation,
